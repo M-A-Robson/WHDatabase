@@ -5,52 +5,10 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
-
-type Model struct {
-	ID           int
-	Game         string
-	Faction      string
-	UnitName     string
-	UnitSize     int
-	Points       int
-	PurchaseDate string
-	BuildDate    string
-	PaintedDate  string
-	Image        []byte
-}
-
-type Date struct {
-	Day   int
-	Month int
-	Year  int
-}
-
-func DateToString(date Date) string {
-	return fmt.Sprintf("%04d-%02d-%02d", date.Year, date.Month, date.Day)
-}
-
-func ParseDate(s string) (Date, error) {
-	t, err := time.Parse("2006-01-02", s)
-	if err != nil {
-		return Date{}, err
-	}
-	return Date{Day: t.Day(), Month: int(t.Month()), Year: t.Year()}, nil
-}
-
-func Today() Date {
-	now := time.Now()
-	return Date{
-		Day:   now.Day(),
-		Month: int(now.Month()),
-		Year:  now.Year(),
-	}
-}
 
 var DB *sql.DB
 
@@ -80,7 +38,7 @@ func InitialiseDatabase() {
 	}
 }
 
-func GetAllTodos() ([]Model, error) {
+func GetAllModels() ([]Model, error) {
 	models := []Model{}
 	rows, err := DB.Query("SELECT * FROM models")
 	if err != nil {

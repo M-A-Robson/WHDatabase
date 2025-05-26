@@ -5,6 +5,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -26,7 +27,7 @@ func InitialiseDatabase() {
 	faction TEXT NOT NULL,
 	unitName TEXT NOT NULL,
 	unitSize INT,
-	points INT,
+	points INT NOT NULL DEFAULT 0,
 	purchaseDate TEXT NOT NULL DEFAULT '',
 	buildDate TEXT NOT NULL DEFAULT '',
 	paintedDate TEXT NOT NULL DEFAULT '',
@@ -92,7 +93,7 @@ func CreateModelEntry(
 	faction string,
 	unitName string,
 	unitSize int,
-	purchaseDate Date) (int64, error) {
+	purchaseDate Date) (int, error) {
 	date := DateToString(purchaseDate)
 	result, err := DB.Exec(
 		"INSERT INTO models(game, faction, unitName, unitSize, purchaseDate) VALUES(?,?,?,?,?)",
@@ -105,7 +106,49 @@ func CreateModelEntry(
 		return -1, err
 	}
 	unit_id, err := result.LastInsertId()
-	return unit_id, err
+	fmt.Printf("unit_id = %d", unit_id)
+	return int(unit_id), err
+}
+
+func UpdateUnitGame(id int, game string) error {
+	_, err := DB.Exec(
+		"UPDATE models SET name = ? WHERE id = ?",
+		game,
+		id)
+	return err
+}
+
+func UpdateUnitFaction(id int, faction string) error {
+	_, err := DB.Exec(
+		"UPDATE models SET faction = ? WHERE id = ?",
+		faction,
+		id)
+	return err
+}
+
+func UpdateUnitName(id int, name string) error {
+	_, err := DB.Exec(
+		"UPDATE models SET unitName = ? WHERE id = ?",
+		name,
+		id)
+	return err
+}
+
+func UpdateUnitSize(id int, unitSize int) error {
+	_, err := DB.Exec(
+		"UPDATE models SET unitSize = ? WHERE id = ?",
+		unitSize,
+		id)
+	return err
+}
+
+func UpdateModelPurchaseDate(id int, date Date) error {
+	datestr := DateToString(date)
+	_, err := DB.Exec(
+		"UPDATE models SET purchaseDate = ? WHERE id = ?",
+		datestr,
+		id)
+	return err
 }
 
 func UpdateModelPoints(id int, points int) error {

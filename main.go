@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 	"internal/db"
 	"net/http"
 
@@ -21,24 +21,15 @@ func getUnits(context *gin.Context) {
 	if err != nil {
 		context.JSON(
 			http.StatusInternalServerError,
-			"Failed to retrieve data")
+			err.Error())
 		return
 	}
-	json_models, err := json.Marshal(models)
-	if err != nil {
-		context.JSON(
-			http.StatusInternalServerError,
-			"Failed to marshal data")
-		return
-	}
-	context.IndentedJSON(http.StatusOK, json_models)
+	context.IndentedJSON(http.StatusOK, models)
 }
 
 func postModels(context *gin.Context) {
 	var newUnit db.Model
 
-	// Call BindJSON to bind the received JSON to
-	// newAlbum.
 	if err := context.BindJSON(&newUnit); err != nil {
 		context.JSON(
 			http.StatusBadRequest,
@@ -48,18 +39,75 @@ func postModels(context *gin.Context) {
 
 	date, err := db.ParseDate(newUnit.PurchaseDate)
 	if err != nil {
-		println(err)
 		context.JSON(
 			http.StatusBadRequest,
-			"Date format invalid, must be YYYY-MM-DD")
+			"Purchase Date format invalid, must be YYYY-MM-DD")
 		return
 	}
 
-	// Add the new album to the slice.
-	db.CreateModelEntry(newUnit.Game,
+	modelId, err := db.CreateModelEntry(newUnit.Game,
 		newUnit.Faction,
 		newUnit.UnitName,
 		newUnit.UnitSize,
 		date)
+	if err != nil {
+		context.JSON(
+			http.StatusInternalServerError,
+			"Could not create model entry")
+		return
+	}
+
+	if newUnit.Points != 0 {
+		if err := db.UpdateModelPoints(modelId, newUnit.Points); err != nil {
+			context.JSON(
+				http.StatusInternalServerError,
+				fmt.Sprintf("Could not update unit points to: %d", newUnit.Points))
+			return
+		}
+	}
+
+	if newUnit.BuildDate != "" {
+		if buildDate, err := db.ParseDate(newUnit.BuildDate); err != nil {
+			context.JSON(
+				http.StatusBadRequest,
+				"Build Date format invalid, must be YYYY-MM-DD")
+			return
+		} else {
+			if err := db.UpdateModelBuildDate(modelId, buildDate); err != nil {
+				context.JSON(
+					http.StatusInternalServerError,
+					"Could not update unit build date")
+				return
+			}
+		}
+	}
+
+	if newUnit.PaintedDate != "" {
+		if paintDate, err := db.ParseDate(newUnit.PaintedDate); err != nil {
+			context.JSON(
+				http.StatusBadRequest,
+				"Painted Date format invalid, must be YYYY-MM-DD")
+			return
+		} else {
+			if err := db.UpdateModelPaintedDate(modelId, paintDate); err != nil {
+				context.JSON(
+					http.StatusInternalServerError,
+					"Could not update unit painted date")
+				return
+			}
+		}
+	}
+
+	if newUnit.Image != nil {
+		if err := db.UpdateModelImage(modelId, newUnit.Image); err != nil {
+			context.JSON(
+				http.StatusInternalServerError,
+				"Could not update unit image")
+			return
+		}
+	}
+
+	newUnit.ID = modelId
 	context.IndentedJSON(http.StatusCreated, newUnit)
+
 }
